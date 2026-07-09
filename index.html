@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Arduino 接線模擬器</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --teal:#00878F; --teal-dark:#00666D; --teal-tint:#DFF0EF;
+  --ink:#1E2A2B; --muted:#5C6B6C; --paper:#EFF3F2; --card:#FFFFFF;
+  --line:#D4DDDB; --line-strong:#B7C4C2; --copper:#C77E3C;
+  --rail-red:#E2504C; --rail-blue:#3C77C2; --radius:10px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Noto Sans TC',system-ui,-apple-system,sans-serif;background:var(--paper);color:var(--ink);line-height:1.6;}
+.wrap{max-width:1180px;margin:0 auto;padding:20px 16px 48px;}
+header{margin-bottom:14px;}
+.rail{height:6px;border-radius:3px;margin:6px 0;
+  background-image:radial-gradient(circle,var(--rail-red) 2px,transparent 2.4px);
+  background-size:16px 6px;background-repeat:repeat-x;}
+.rail.blue{background-image:radial-gradient(circle,var(--rail-blue) 2px,transparent 2.4px);}
+h1{font-size:26px;font-weight:700;letter-spacing:1px;}
+h1 .zap{color:var(--teal);}
+.sub{font-size:14px;color:var(--muted);}
+details.help{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:10px 16px;margin:12px 0;font-size:14px;}
+details.help summary{cursor:pointer;font-weight:500;color:var(--teal-dark);}
+details.help ol{padding-left:22px;margin-top:6px;}
+details.help li{margin:2px 0;}
+.panel{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:10px;}
+.group{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:8px 12px 10px;display:flex;flex-direction:column;gap:6px;}
+.group .eyebrow{font-size:11px;font-weight:700;letter-spacing:2px;color:var(--copper);text-transform:uppercase;}
+.row{display:flex;flex-wrap:wrap;gap:6px;align-items:center;}
+button{font-family:inherit;font-size:14px;padding:7px 12px;border-radius:8px;border:1px solid var(--line);
+  background:var(--card);color:var(--ink);cursor:pointer;transition:background .15s;}
+button:hover{background:var(--teal-tint);}
+button:active{transform:scale(.97);}
+button.primary{background:var(--teal);border-color:var(--teal-dark);color:#fff;font-weight:500;}
+button.primary:hover{background:var(--teal-dark);}
+button.mode.on{background:var(--teal-tint);border-color:var(--teal);color:var(--teal-dark);font-weight:500;}
+button.danger:hover{background:#FBEAEA;border-color:#D68A8A;color:#8F2626;}
+select,input[type=range]{font-family:inherit;font-size:14px;}
+select{padding:6px 8px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--ink);}
+label.small{font-size:13px;color:var(--muted);}
+.swatch{width:26px;height:26px;min-width:26px;padding:0;border-radius:50%;border:2px solid var(--line-strong);}
+.swatch.on{outline:3px solid var(--teal);outline-offset:1px;}
+input[type=range]{accent-color:var(--teal);}
+input[type=checkbox]{accent-color:var(--teal);width:16px;height:16px;}
+#paletteBar{display:flex;gap:8px;overflow-x:auto;padding:4px 2px;min-height:88px;align-items:flex-start;}
+.thumb{position:relative;width:78px;flex:0 0 auto;text-align:center;cursor:pointer;border:1px solid var(--line);
+  border-radius:8px;padding:6px 4px 4px;background:#FDFEFE;}
+.thumb:hover{border-color:var(--teal);background:var(--teal-tint);}
+.thumb img{width:56px;height:48px;object-fit:contain;display:block;margin:0 auto;pointer-events:none;}
+.thumb .nm{font-size:12px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px;}
+.thumb .rm{position:absolute;top:-7px;right:-7px;width:18px;height:18px;min-width:18px;padding:0;border-radius:50%;
+  font-size:11px;line-height:1;background:#fff;border:1px solid var(--line-strong);color:var(--muted);}
+.thumb .rm:hover{background:#FBEAEA;color:#8F2626;border-color:#D68A8A;}
+#emptyPalette{font-size:13px;color:var(--muted);align-self:center;}
+.stage{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:10px;}
+canvas#cv{display:block;width:100%;border-radius:6px;touch-action:none;cursor:crosshair;background:#FAFBFB;}
+#hint{font-size:13px;color:var(--muted);margin-top:6px;}
+#selPanel{display:none;}
+footer{margin-top:14px;font-size:12px;color:var(--muted);text-align:center;}
+@media (max-width:640px){ h1{font-size:21px;} button{padding:8px 10px;} }
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div class="rail"></div>
+  <h1><span class="zap">⌁</span> Arduino 接線模擬器</h1>
+  <p class="sub">上傳擴充板與感測器的實際照片，先在螢幕上規劃接線，再動手實作。</p>
+  <div class="rail blue"></div>
+</header>
+
+<details class="help">
+  <summary>使用說明（點我展開）</summary>
+  <ol>
+    <li>按「上傳擴充板圖片」放入底圖（固定不動，可用滑桿調整大小）。</li>
+    <li>按「上傳感測器圖片」加入圖庫（可一次選多張）；點圖庫縮圖即可放到畫布上，同一種可放多個。</li>
+    <li>「移動」模式可拖曳感測器；點選後可用滑桿縮放或刪除（也可按 Delete 鍵）。</li>
+    <li>「畫筆」模式畫接線：建議黑線接 G（接地）、紅線接 V（電源）、其他色接 S（訊號）。</li>
+    <li>「橡皮擦」劃過線條可整條擦除；也有復原與清除按鈕。</li>
+    <li>完成後可「匯出圖片」繳交，或「儲存進度」下次再繼續。</li>
+    <li>老師專用：「匯出成品網頁」會把目前的圖片與版面內嵌成一個新的 HTML 檔，直接發布給學生使用，學生打開就有老師準備好的圖片。</li>
+  </ol>
+</details>
+
+<div class="panel">
+  <div class="group">
+    <span class="eyebrow">圖片</span>
+    <div class="row">
+      <button id="boardBtn">上傳擴充板圖片</button>
+      <button id="sensorBtn">上傳感測器圖片</button>
+      <span class="row" id="boardScaleRow" style="display:none;">
+        <label class="small" for="boardScale">底圖大小</label>
+        <input type="range" id="boardScale" min="30" max="100" value="90" step="1" style="width:110px;">
+      </span>
+      <span class="row">
+        <input type="checkbox" id="labelChk" checked>
+        <label class="small" for="labelChk">顯示名稱</label>
+      </span>
+    </div>
+  </div>
+  <div class="group">
+    <span class="eyebrow">繪圖工具</span>
+    <div class="row">
+      <button class="mode" data-mode="move">✋ 移動</button>
+      <button class="mode on" data-mode="draw">✏️ 畫筆</button>
+      <button class="mode" data-mode="erase">🩹 橡皮擦</button>
+      <span class="row" id="colorRow"></span>
+      <select id="widthSel" aria-label="線條粗細">
+        <option value="3">細線</option>
+        <option value="5" selected>中線</option>
+        <option value="8">粗線</option>
+      </select>
+    </div>
+  </div>
+  <div class="group" id="selPanel">
+    <span class="eyebrow">選取的感測器</span>
+    <div class="row">
+      <label class="small" for="itemScale">大小</label>
+      <input type="range" id="itemScale" min="30" max="250" value="100" step="1" style="width:110px;">
+      <button id="delBtn" class="danger">刪除選取</button>
+    </div>
+  </div>
+  <div class="group">
+    <span class="eyebrow">畫布動作</span>
+    <div class="row">
+      <button id="undoBtn">↩ 復原一筆</button>
+      <button id="clearWireBtn">清除接線</button>
+      <button id="clearAllBtn" class="danger">全部清除</button>
+      <button id="exportBtn" class="primary">⬇ 匯出圖片</button>
+    </div>
+  </div>
+  <div class="group">
+    <span class="eyebrow">檔案</span>
+    <div class="row">
+      <button id="saveBtn">儲存進度</button>
+      <button id="loadBtn">讀取進度</button>
+      <button id="publishBtn">匯出成品網頁</button>
+    </div>
+  </div>
+</div>
+
+<div class="group" style="margin-bottom:10px;">
+  <span class="eyebrow">感測器圖庫（點縮圖加入畫布）</span>
+  <div id="paletteBar"><span id="emptyPalette">尚未上傳感測器圖片。</span></div>
+</div>
+
+<div class="stage">
+  <canvas id="cv"></canvas>
+  <p id="hint"></p>
+</div>
+
+<footer>Arduino 接線模擬器 · 適用電腦、平板觸控操作 · 匯出圖片為 PNG 格式</footer>
+</div>
+
+<input type="file" id="boardFile" accept="image/*" hidden>
+<input type="file" id="sensorFile" accept="image/*" multiple hidden>
+<input type="file" id="projFile" accept=".json,application/json" hidden>
+<script type="application/json" id="embedded-data">null</script>
+<script>
+(function(){
+'use strict';
+var PRISTINE='<!DOCTYPE html>\n'+document.documentElement.outerHTML;
+var W=1280,H=800,DPR=2;
+var cv=document.getElementById('cv');
+cv.width=W*DPR; cv.height=H*DPR;
+var ctx=cv.getContext('2d');
+
+var board={img:null,dataUrl:null,scale:0.9};
+var palette=[];   /* {id,name,dataUrl,img} */
+var items=[];     /* {pid,x,y,scale} */
+var strokes=[];   /* {color,width,pts:[{x,y}]} */
+var cur=null, sel=null, dragOff=null, erasing=false;
+var mode='draw', penColor='#E02B2B', penWidth=5, showLabels=true;
+var idc=0, spawnN=0;
+var COLORS=['#E02B2B','#1F1F1F','#F2B705','#1F9E4D','#2465D6','#F07F13','#8A8F98'];
+
+function loadImg(u){return new Promise(function(res,rej){var i=new Image();i.onload=function(){res(i);};i.onerror=rej;i.src=u;});}
+
+function processFile(file,maxDim){
+  return new Promise(function(res,rej){
+    var r=new FileReader();
+    r.onerror=rej;
+    r.onload=function(){
+      var img=new Image();
+      img.onload=function(){
+        var w=img.naturalWidth,h=img.naturalHeight,k=Math.min(1,maxDim/Math.max(w,h));
+        if(k>=1 && file.size<900000){res({dataUrl:r.result,img:img});return;}
+        var c=document.createElement('canvas');
+        c.width=Math.round(w*k); c.height=Math.round(h*k);
+        c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+        var isPng=(file.type==='image/png');
+        var u=isPng?c.toDataURL('image/png'):c.toDataURL('image/jpeg',0.85);
+        loadImg(u).then(function(im){res({dataUrl:u,img:im});});
+      };
+      img.onerror=rej;
+      img.src=r.result;
+    };
+    r.readAsDataURL(file);
+  });
+}
+
+/* ---------- 繪製 ---------- */
+function itemRect(it){
+  var p=palette.find(function(q){return q.id===it.pid;});
+  if(!p||!p.img)return{x:it.x,y:it.y,w:120,h:90};
+  var dw=180*it.scale, dh=dw*p.img.naturalHeight/p.img.naturalWidth;
+  return{x:it.x,y:it.y,w:dw,h:dh+(showLabels?26:0)};
+}
+function scene(c,forExport){
+  c.fillStyle=forExport?'#FFFFFF':'#FAFBFB';
+  c.fillRect(0,0,W,H);
+  if(!forExport){
+    c.fillStyle='#E3EAE9';
+    for(var gx=40;gx<W;gx+=40)for(var gy=40;gy<H;gy+=40){c.beginPath();c.arc(gx,gy,1.4,0,7);c.fill();}
+  }
+  if(board.img){
+    var maxW=W*board.scale,maxH=H*board.scale;
+    var k=Math.min(maxW/board.img.naturalWidth,maxH/board.img.naturalHeight);
+    var bw=board.img.naturalWidth*k,bh=board.img.naturalHeight*k;
+    c.drawImage(board.img,(W-bw)/2,(H-bh)/2,bw,bh);
+  }else if(!forExport){
+    c.fillStyle='#9AABAA'; c.font='500 26px "Noto Sans TC",sans-serif';
+    c.textAlign='center'; c.textBaseline='middle';
+    c.fillText('請先上傳「擴充板圖片」作為固定底圖',W/2,H/2-20);
+    c.font='400 18px "Noto Sans TC",sans-serif';
+    c.fillText('再上傳感測器圖片，點圖庫縮圖即可加入畫布',W/2,H/2+18);
+  }
+  items.forEach(function(it){
+    var p=palette.find(function(q){return q.id===it.pid;});
+    if(!p||!p.img)return;
+    var r=itemRect(it), dh=r.h-(showLabels?26:0);
+    c.drawImage(p.img,r.x,r.y,r.w,dh);
+    if(showLabels){
+      c.font='500 16px "Noto Sans TC",sans-serif';
+      c.textAlign='center'; c.textBaseline='middle';
+      c.lineWidth=4; c.strokeStyle='rgba(255,255,255,.9)';
+      c.strokeText(p.name,r.x+r.w/2,r.y+dh+14);
+      c.fillStyle='#22302F';
+      c.fillText(p.name,r.x+r.w/2,r.y+dh+14);
+    }
+  });
+  c.lineCap='round'; c.lineJoin='round';
+  var all=cur?strokes.concat([cur]):strokes;
+  all.forEach(function(st){
+    c.strokeStyle=st.color; c.lineWidth=st.width; c.beginPath();
+    st.pts.forEach(function(p,i){ i?c.lineTo(p.x,p.y):c.moveTo(p.x,p.y); });
+    if(st.pts.length===1)c.lineTo(st.pts[0].x+.5,st.pts[0].y+.5);
+    c.stroke();
+  });
+  if(sel&&!forExport){
+    var r2=itemRect(sel);
+    c.strokeStyle='#00878F'; c.lineWidth=2; c.setLineDash([7,5]);
+    c.strokeRect(r2.x-6,r2.y-6,r2.w+12,r2.h+12);
+    c.setLineDash([]);
+  }
+}
+function render(){ ctx.setTransform(DPR,0,0,DPR,0,0); ctx.clearRect(0,0,W,H); scene(ctx,false); }
+
+/* ---------- 指標事件 ---------- */
+function pt(e){var r=cv.getBoundingClientRect();return{x:(e.clientX-r.left)*W/r.width,y:(e.clientY-r.top)*H/r.height};}
+function hit(p){
+  for(var i=items.length-1;i>=0;i--){
+    var r=itemRect(items[i]);
+    if(p.x>=r.x-6&&p.x<=r.x+r.w+6&&p.y>=r.y-6&&p.y<=r.y+r.h+6)return items[i];
+  }
+  return null;
+}
+function eraseAt(p){
+  var n=strokes.length;
+  strokes=strokes.filter(function(st){
+    return !st.pts.some(function(q){var dx=q.x-p.x,dy=q.y-p.y;return dx*dx+dy*dy<324;});
+  });
+  if(strokes.length!==n)render();
+}
+cv.addEventListener('pointerdown',function(e){
+  e.preventDefault(); cv.setPointerCapture(e.pointerId);
+  var p=pt(e);
+  if(mode==='move'){
+    var s=hit(p); setSel(s);
+    if(s){dragOff={dx:p.x-s.x,dy:p.y-s.y}; items=items.filter(function(o){return o!==s;}); items.push(s);}
+    render();
+  }else if(mode==='draw'){
+    cur={color:penColor,width:penWidth,pts:[p]}; render();
+  }else{ erasing=true; eraseAt(p); }
+});
+cv.addEventListener('pointermove',function(e){
+  if(!cur&&!erasing&&!dragOff)return;
+  var p=pt(e);
+  if(mode==='move'&&sel&&dragOff){
+    var r=itemRect(sel);
+    sel.x=Math.min(Math.max(p.x-dragOff.dx,4),W-r.w-4);
+    sel.y=Math.min(Math.max(p.y-dragOff.dy,4),H-r.h-4);
+    render();
+  }else if(mode==='draw'&&cur){ cur.pts.push(p); render(); }
+  else if(mode==='erase'&&erasing){ eraseAt(p); }
+});
+function up(){ if(cur){strokes.push(cur);cur=null;} dragOff=null; erasing=false; render(); }
+cv.addEventListener('pointerup',up); cv.addEventListener('pointercancel',up);
+
+/* ---------- 工具列 ---------- */
+var HINTS={move:'移動模式：拖曳感測器換位置，點選後可縮放或刪除。',
+           draw:'畫筆模式：拖曳畫出接線（黑＝G 接地、紅＝V 電源、其他＝S 訊號）。',
+           erase:'橡皮擦模式：點或劃過線條即可整條擦除。'};
+var hint=document.getElementById('hint');
+var selPanel=document.getElementById('selPanel');
+var itemScale=document.getElementById('itemScale');
+function setSel(s){
+  sel=s;
+  selPanel.style.display=s?'flex':'none';
+  if(s)itemScale.value=Math.round(s.scale*100);
+}
+function setMode(m){
+  mode=m; setSel(null);
+  document.querySelectorAll('button.mode').forEach(function(b){b.classList.toggle('on',b.dataset.mode===m);});
+  cv.style.cursor=m==='draw'?'crosshair':(m==='erase'?'cell':'grab');
+  hint.textContent=HINTS[m]; render();
+}
+document.querySelectorAll('button.mode').forEach(function(b){
+  b.addEventListener('click',function(){setMode(b.dataset.mode);});
+});
+var colorRow=document.getElementById('colorRow');
+COLORS.forEach(function(cc,i){
+  var b=document.createElement('button');
+  b.className='swatch'+(i===0?' on':'');
+  b.style.background=cc;
+  b.setAttribute('aria-label','線色 '+cc);
+  b.addEventListener('click',function(){
+    penColor=cc;
+    colorRow.querySelectorAll('.swatch').forEach(function(x){x.classList.remove('on');});
+    b.classList.add('on');
+    if(mode!=='draw')setMode('draw');
+  });
+  colorRow.appendChild(b);
+});
+document.getElementById('widthSel').addEventListener('change',function(e){penWidth=parseFloat(e.target.value);});
+itemScale.addEventListener('input',function(){ if(sel){sel.scale=parseInt(itemScale.value,10)/100; render();} });
+document.getElementById('delBtn').addEventListener('click',function(){
+  items=items.filter(function(o){return o!==sel;}); setSel(null); render();
+});
+document.addEventListener('keydown',function(e){
+  if((e.key==='Delete'||e.key==='Backspace')&&sel&&!/INPUT|TEXTAREA|SELECT/.test(e.target.tagName)){
+    e.preventDefault();
+    items=items.filter(function(o){return o!==sel;}); setSel(null); render();
+  }
+});
+document.getElementById('undoBtn').addEventListener('click',function(){strokes.pop();render();});
+document.getElementById('clearWireBtn').addEventListener('click',function(){strokes=[];cur=null;render();});
+document.getElementById('clearAllBtn').addEventListener('click',function(){
+  strokes=[];items=[];cur=null;setSel(null);render();
+});
+document.getElementById('labelChk').addEventListener('change',function(e){showLabels=e.target.checked;render();});
+var boardScaleRow=document.getElementById('boardScaleRow');
+document.getElementById('boardScale').addEventListener('input',function(e){
+  board.scale=parseInt(e.target.value,10)/100; render();
+});
+
+/* ---------- 上傳 ---------- */
+var boardFile=document.getElementById('boardFile');
+var sensorFile=document.getElementById('sensorFile');
+document.getElementById('boardBtn').addEventListener('click',function(){boardFile.click();});
+document.getElementById('sensorBtn').addEventListener('click',function(){sensorFile.click();});
+boardFile.addEventListener('change',function(){
+  var f=boardFile.files[0]; if(!f)return;
+  processFile(f,1600).then(function(r){
+    board.img=r.img; board.dataUrl=r.dataUrl;
+    boardScaleRow.style.display='flex'; render();
+  });
+  boardFile.value='';
+});
+sensorFile.addEventListener('change',function(){
+  var files=Array.prototype.slice.call(sensorFile.files);
+  files.reduce(function(chain,f){
+    return chain.then(function(){
+      return processFile(f,900).then(function(r){
+        var nm=prompt('這個感測器的名稱？',f.name.replace(/\.[^.]+$/,''))||f.name.replace(/\.[^.]+$/,'');
+        palette.push({id:'p'+(++idc)+'_'+Date.now(),name:nm,dataUrl:r.dataUrl,img:r.img});
+      });
+    });
+  },Promise.resolve()).then(function(){renderPalette();});
+  sensorFile.value='';
+});
+
+/* ---------- 圖庫 ---------- */
+var paletteBar=document.getElementById('paletteBar');
+function renderPalette(){
+  paletteBar.innerHTML='';
+  if(!palette.length){
+    var s=document.createElement('span');
+    s.id='emptyPalette'; s.textContent='尚未上傳感測器圖片。';
+    paletteBar.appendChild(s); return;
+  }
+  palette.forEach(function(p){
+    var d=document.createElement('div');
+    d.className='thumb'; d.title='點一下加入畫布；雙擊名稱可重新命名';
+    var im=document.createElement('img'); im.src=p.dataUrl; im.alt=p.name;
+    var nm=document.createElement('div'); nm.className='nm'; nm.textContent=p.name;
+    var rm=document.createElement('button'); rm.className='rm'; rm.textContent='✕';
+    rm.setAttribute('aria-label','從圖庫移除 '+p.name);
+    rm.addEventListener('click',function(e){
+      e.stopPropagation();
+      if(!confirm('要從圖庫移除「'+p.name+'」嗎？畫布上的同款感測器也會一併移除。'))return;
+      palette=palette.filter(function(q){return q!==p;});
+      items=items.filter(function(it){return it.pid!==p.id;});
+      if(sel&&sel.pid===p.id)setSel(null);
+      renderPalette(); render();
+    });
+    nm.addEventListener('dblclick',function(e){
+      e.stopPropagation();
+      var v=prompt('重新命名：',p.name);
+      if(v){p.name=v; renderPalette(); render();}
+    });
+    d.addEventListener('click',function(){
+      var sp=spawnN%6;
+      items.push({pid:p.id,x:40+sp*46,y:36+sp*40,scale:1});
+      spawnN++;
+      if(mode==='draw')hint.textContent='已加入「'+p.name+'」，切換「移動」模式可拖曳擺放。';
+      render();
+    });
+    d.appendChild(rm); d.appendChild(im); d.appendChild(nm);
+    paletteBar.appendChild(d);
+  });
+}
+
+/* ---------- 匯出圖片 ---------- */
+document.getElementById('exportBtn').addEventListener('click',function(){
+  var ex=document.createElement('canvas');
+  ex.width=W*DPR; ex.height=H*DPR;
+  var c2=ex.getContext('2d'); c2.setTransform(DPR,0,0,DPR,0,0);
+  scene(c2,true);
+  var a=document.createElement('a');
+  a.download='Arduino接線圖.png';
+  a.href=ex.toDataURL('image/png');
+  a.click();
+});
+
+/* ---------- 專案儲存 / 讀取 ---------- */
+function projectData(){
+  return{v:1,
+    board:board.dataUrl?{dataUrl:board.dataUrl,scale:board.scale}:null,
+    palette:palette.map(function(p){return{id:p.id,name:p.name,dataUrl:p.dataUrl};}),
+    items:items, strokes:strokes, showLabels:showLabels};
+}
+function downloadBlob(content,type,name){
+  var a=document.createElement('a');
+  var url=URL.createObjectURL(new Blob([content],{type:type}));
+  a.href=url; a.download=name; a.click();
+  setTimeout(function(){URL.revokeObjectURL(url);},4000);
+}
+document.getElementById('saveBtn').addEventListener('click',function(){
+  downloadBlob(JSON.stringify(projectData()),'application/json','接線模擬器專案.json');
+});
+var projFile=document.getElementById('projFile');
+document.getElementById('loadBtn').addEventListener('click',function(){projFile.click();});
+projFile.addEventListener('change',function(){
+  var f=projFile.files[0]; if(!f)return;
+  var r=new FileReader();
+  r.onload=function(){
+    try{ loadProject(JSON.parse(r.result)); }
+    catch(err){ alert('讀取失敗：這不是有效的專案檔。'); }
+  };
+  r.readAsText(f);
+  projFile.value='';
+});
+function loadProject(d){
+  if(!d)return Promise.resolve();
+  var tasks=[];
+  board={img:null,dataUrl:null,scale:0.9};
+  if(d.board&&d.board.dataUrl){
+    board.dataUrl=d.board.dataUrl; board.scale=d.board.scale||0.9;
+    tasks.push(loadImg(board.dataUrl).then(function(im){board.img=im;}));
+  }
+  palette=(d.palette||[]).map(function(p){return{id:p.id,name:p.name,dataUrl:p.dataUrl,img:null};});
+  palette.forEach(function(p){ tasks.push(loadImg(p.dataUrl).then(function(im){p.img=im;})); });
+  items=d.items||[]; strokes=d.strokes||[]; setSel(null);
+  showLabels=(d.showLabels!==false);
+  document.getElementById('labelChk').checked=showLabels;
+  return Promise.all(tasks).then(function(){
+    boardScaleRow.style.display=board.img?'flex':'none';
+    document.getElementById('boardScale').value=Math.round(board.scale*100);
+    renderPalette(); render();
+  });
+}
+
+/* ---------- 匯出成品網頁（內嵌圖片） ---------- */
+document.getElementById('publishBtn').addEventListener('click',function(){
+  var json=JSON.stringify(projectData()).replace(/</g,'\\u003c');
+  var html=PRISTINE.replace(
+    /(<script type="application\/json" id="embedded-data">)[\s\S]*?(<\/script>)/,
+    function(m,a,b){return a+json+b;}
+  );
+  downloadBlob(html,'text/html','Arduino接線模擬器_成品.html');
+  alert('已匯出成品網頁！這個檔案已內嵌目前的圖片與版面，可直接發布給學生使用。');
+});
+
+/* ---------- 初始化 ---------- */
+setMode('draw');
+renderPalette();
+render();
+try{
+  var emb=document.getElementById('embedded-data');
+  var d=JSON.parse(emb.textContent||'null');
+  if(d)loadProject(d);
+}catch(e){}
+})();
+</script>
+</body>
+</html>
