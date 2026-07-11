@@ -15,7 +15,7 @@
 }
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:'Noto Sans TC',system-ui,-apple-system,sans-serif;background:var(--paper);color:var(--ink);line-height:1.55;}
-.wrap{max-width:1480px;margin:0 auto;padding:12px 14px 40px;}
+.wrap{max-width:none;margin:0 auto;padding:12px 16px 40px;}
 header{margin-bottom:8px;}
 .rail{height:4px;border-radius:2px;margin:4px 0;
   background-image:radial-gradient(circle,var(--rail-red) 1.6px,transparent 2px);
@@ -123,19 +123,6 @@ footer{margin-top:10px;font-size:12px;color:var(--muted);text-align:center;}
     <div class="legend"><i class="multi"></i>訊號＝自動不重複</div>
     <div class="legend"><i style="background:#8A8F98"></i>畫筆手繪＝灰色</div>
   </div>
-  <div class="group off" id="selPanel">
-    <span class="eyebrow">選取的感測器</span>
-    <div class="row">
-      <label class="small" for="itemScale">大小</label>
-      <input type="range" id="itemScale" min="30" max="250" value="100" step="1" style="width:100px;">
-    </div>
-    <div class="row">
-      <label class="small" for="itemRot">旋轉</label>
-      <input type="range" id="itemRot" min="0" max="359" value="0" step="1" style="width:100px;">
-    </div>
-    <button id="rot90Btn" class="wide">↻ 旋轉 90°</button>
-    <button id="delBtn" class="wide danger">🗑 刪除選取</button>
-  </div>
   <div class="group">
     <span class="eyebrow">畫布動作</span>
     <button id="checkBtn" class="wide">✔ 檢查接線</button>
@@ -176,6 +163,19 @@ footer{margin-top:10px;font-size:12px;color:var(--muted);text-align:center;}
       <label class="small" for="focusChk">聚焦模式（淡化未用區域）</label>
     </div>
   </div>
+  <div class="group off" id="selPanel">
+    <span class="eyebrow">選取的感測器</span>
+    <div class="row">
+      <label class="small" for="itemScale">大小</label>
+      <input type="range" id="itemScale" min="30" max="250" value="100" step="1" style="width:100px;">
+    </div>
+    <div class="row">
+      <label class="small" for="itemRot">旋轉</label>
+      <input type="range" id="itemRot" min="0" max="359" value="0" step="1" style="width:100px;">
+    </div>
+    <button id="rot90Btn" class="wide">↻ 旋轉 90°</button>
+    <button id="delBtn" class="wide danger">🗑 刪除選取</button>
+  </div>
   <div class="group">
     <span class="eyebrow">檔案</span>
     <button id="saveBtn" class="wide">儲存進度</button>
@@ -185,7 +185,7 @@ footer{margin-top:10px;font-size:12px;color:var(--muted);text-align:center;}
 </aside>
 </div>
 
-<footer>開發板接線模擬器 v6 · 適用電腦、平板觸控操作 · 匯出圖片為 PNG 格式</footer>
+<footer>開發板接線模擬器 v7 · 適用電腦、平板觸控操作 · 匯出圖片為 PNG 格式</footer>
 </div>
 
 <input type="file" id="boardFile" accept="image/*" hidden>
@@ -196,7 +196,7 @@ footer{margin-top:10px;font-size:12px;color:var(--muted);text-align:center;}
 (function(){
 'use strict';
 var PRISTINE='<!DOCTYPE html>\n'+document.documentElement.outerHTML;
-var W=1280,H=800,DPR=2;
+var W=1600,H=800,DPR=2;
 var cv=document.getElementById('cv');
 cv.width=W*DPR; cv.height=H*DPR;
 var ctx=cv.getContext('2d');
